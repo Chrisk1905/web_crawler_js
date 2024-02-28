@@ -9,9 +9,7 @@ function normalizeURL(url){
   return fullPath
 }
 
-//baseURL: root URL of website
 //return an array of non-normalized URLs found within the HTML
-
 function getURLsFromHTML(htmlBody, baseURL){
   const urls = []
   const dom = new JSDOM(htmlBody)
@@ -35,8 +33,29 @@ function getURLsFromHTML(htmlBody, baseURL){
 }
 
 
+async function crawlPage(rootURL){
+	try{
+		const resp = await fetch(rootURL);	
+		if( resp.status >= 400 ){
+			console.log(`${resp.status}: ${resp.statusText}`);
+			return;
+		}
+    const contentType = resp.headers.get('content-type');
+		if( !contentType.includes('text/html') ){
+			console.log(`wrong content type: ${contentType}`);
+			return;
+		}
+		console.log( await resp.text() );
+
+	}catch(err){
+		console.log(err.message);
+		return;
+	}
+}
+
 module.exports = {
 	normalizeURL, 
-	getURLsFromHTML
+	getURLsFromHTML,
+	crawlPage
 }
 
