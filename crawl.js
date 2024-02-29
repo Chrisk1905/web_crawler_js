@@ -32,10 +32,13 @@ function getURLsFromHTML(htmlBody, baseURL){
   return urls
 }
 
-
-async function crawlPage(rootURL){
+//pages: count of pages crawled
+async function crawlPage(baseURL, currentURL, pages){
+  if(!currentURL.includes( baseURL )){
+    return
+  }
 	try{
-		const resp = await fetch(rootURL);	
+		const resp = await fetch(baseURL);	
 		if( resp.status >= 400 ){
 			console.log(`${resp.status}: ${resp.statusText}`);
 			return;
