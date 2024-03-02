@@ -32,13 +32,26 @@ function getURLsFromHTML(htmlBody, baseURL){
   return urls
 }
 
-//pages: count of pages crawled
+// pages: object that maps page urls to a count
 async function crawlPage(baseURL, currentURL, pages){
   if(!currentURL.includes( baseURL )){
-    return
+    return pages;
   }
+     
+  currentURL = normalizeURL(currentURL);
+  console.log(currentURL);
+  if(currentURL in pages){
+    pages[currentURL] += 1;
+    return pages;
+  }
+  if(currentURL == baseURL){
+    pages[currentURL] = 0;
+  }else{
+    pages[currentURL] = 1;
+  }
+
 	try{
-		const resp = await fetch(baseURL);	
+		const resp = await fetch(currentURL);	
 		if( resp.status >= 400 ){
 			console.log(`${resp.status}: ${resp.statusText}`);
 			return;
@@ -49,7 +62,7 @@ async function crawlPage(baseURL, currentURL, pages){
 			return;
 		}
 		console.log( await resp.text() );
-
+    
 	}catch(err){
 		console.log(err.message);
 		return;
