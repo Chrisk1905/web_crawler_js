@@ -1,15 +1,59 @@
-const {JSDOM} = require('jsdom');
+const { JSDOM } = require('jsdom')
 
-function normalizeURL(url){
-  const urlObj = new URL(url)
-  let fullPath = `${urlObj.host}${urlObj.pathname}`
-  if (fullPath.length > 0 && fullPath.slice(-1) === '/'){
-    fullPath = fullPath.slice(0, -1)
+async function crawlPage(baseURL, currentURL, pages){
+  // if this is an offsite URL, bail immediately
+  const currentUrlObj = new URL(currentURL)
+  const baseUrlObj = new URL(baseURL)
+  if (currentUrlObj.hostname !== baseUrlObj.hostname){
+    return pages
   }
-  return fullPath
+  
+  const normalizedURL = normalizeURL(currentURL)
+
+  // if we've already visited this page
+  // just increase the count and don't repeat
+  // the http request
+  if (normalizedURL in pages){
+    pages[normalizedURL]+=1;
+    return pages;
+  }
+
+  // initialize this page in the map
+  // since it doesn't exist yet
+  if (currentURL === baseURL){
+    // don't count the base URL as a link to itself
+    pages[normalizedURL] = 0
+  } else {
+    pages[normalizedURL] = 1
+  }
+
+  // fetch and parse the html of the currentURL
+  console.log(`crawling ${currentURL}`)
+  let htmlBody = ''
+  try {
+    const resp = await fetch(currentURL)
+    if (resp.status > 399){
+      console.log(`Got HTTP error, status code: ${resp.status}`)
+      return pages
+    }
+    const contentType = resp.headers.get('content-type')
+    if (!contentType.includes('text/html')){
+      console.log(`Got non-html response: ${contentType}`)
+      return pages
+    }
+    htmlBody = await resp.text()
+  } catch (err){
+    console.log(err.message)
+  }
+
+  const nextURLs = getURLsFromHTML(htmlBody, baseURL)
+  for (const nextURL of nextURLs){
+    pages = await crawlPage(baseURL, nextURL, pages)
+  }
+
+  return pages
 }
 
-//return an array of non-normalized URLs found within the HTML
 function getURLsFromHTML(htmlBody, baseURL){
   const urls = []
   const dom = new JSDOM(htmlBody)
@@ -32,46 +76,18 @@ function getURLsFromHTML(htmlBody, baseURL){
   return urls
 }
 
-// pages: object that maps page urls to a count
-async function crawlPage(baseURL, currentURL, pages){
-  if(!currentURL.includes( baseURL )){
-    return pages;
+function normalizeURL(url){
+  const urlObj = new URL(url)
+  let fullPath = `${urlObj.host}${urlObj.pathname}`
+  if (fullPath.length > 0 && fullPath.slice(-1) === '/'){
+    fullPath = fullPath.slice(0, -1)
   }
-     
-  currentURL = normalizeURL(currentURL);
-  console.log(currentURL);
-  if(currentURL in pages){
-    pages[currentURL] += 1;
-    return pages;
-  }
-  if(currentURL == baseURL){
-    pages[currentURL] = 0;
-  }else{
-    pages[currentURL] = 1;
-  }
-
-	try{
-		const resp = await fetch(currentURL);	
-		if( resp.status >= 400 ){
-			console.log(`${resp.status}: ${resp.statusText}`);
-			return;
-		}
-    const contentType = resp.headers.get('content-type');
-		if( !contentType.includes('text/html') ){
-			console.log(`wrong content type: ${contentType}`);
-			return;
-		}
-		console.log( await resp.text() );
-    
-	}catch(err){
-		console.log(err.message);
-		return;
-	}
+  return fullPath
 }
 
 module.exports = {
-	normalizeURL, 
-	getURLsFromHTML,
-	crawlPage
+  crawlPage,
+  normalizeURL,
+  getURLsFromHTML
 }
 

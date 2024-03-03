@@ -1,22 +1,22 @@
 const { argv } = require('node:process');
 const { crawlPage } = require('./crawl.js');
+const { printReport, sortPages } = require('./report.js');
 
-async function main(argv){
-	if(argv.length < 3){
-		console.log(' error: no BASE_URL arguement ');
-		return;
-	}
-	if(argv.length > 3){
-		console.log(' error: too many arguements ');
-		return;
-	}
-		
-	baseURL = argv[2];	
-	
-	console.log(`crawler starting on ${baseURL} ...`);
-  const pages = await crawlPage(baseURL, "", {});
-  console.log(pages);
+async function main(){
+  if (process.argv.length < 3){
+    console.log('no website provided')
+  }
+  if (process.argv.length > 3){
+    console.log('too many arguments provided')
+  }
+
+  const baseURL = process.argv[2]
+
+  console.log(`starting crawl of: ${baseURL}...`)
+
+  const pages = await crawlPage(baseURL, baseURL, {})
+  
+  printReport(pages);
 }
 
-main(argv)
-
+main()
